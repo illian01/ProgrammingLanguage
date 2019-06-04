@@ -58,15 +58,19 @@ public class CuteInterpreter {
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 		case CAR:
-			ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-			// car이 ListNode일 경우 -> Quote로 묶어서 리턴
-			if (node1.car() instanceof ListNode)
-				return new QuoteNode((ListNode) node1.car());
-			// car이 ValueNode일 경우 -> 그대로 리턴
-			else if (node1.car() instanceof ValueNode)
-				return (ValueNode) node1.car();
+			if(operand.car() instanceof QuoteNode) {
+				ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+				
+				if (node1.car() instanceof ListNode)
+					return new QuoteNode((ListNode) node1.car());
+				else if (node1.car() instanceof IdNode)
+					return lookupTable(((IdNode)node1.car()).idString);
+				else
+					return node1.car();
+			}
+			else
+				return lookupTable(((IdNode)operand.car()).idString);
 
-			break;
 		case CDR:
 			ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
 			// cdr값을 Quote로 묶어서 리턴
