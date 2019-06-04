@@ -168,9 +168,7 @@ public class CuteInterpreter {
 			return runList(ListNode.cons(cond, ((ListNode) remainder).cdr()));
 			
 		case DEFINE:
-			
-			
-			break;
+			insertTable(operand.car(), operand.cdr().car());
 		default:
 			break;
 		}
@@ -235,6 +233,15 @@ public class CuteInterpreter {
 	}
 
 	private void insertTable(Node id, Node value) {
-		
+		Node tmp;
+		if (value instanceof ListNode) {
+			if (((ListNode)value).car() instanceof BinaryOpNode)
+				tmp = runExpr(value);
+			else
+				tmp = ((ListNode)value).car();
+		}
+		else
+			tmp = value;
+		VariableMap.put((((IdNode) id).idString), tmp);
 	}
 }
