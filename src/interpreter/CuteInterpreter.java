@@ -195,11 +195,15 @@ public class CuteInterpreter {
 		// 각 Node가 List라면 재귀적으로 연산해서 값을 얻어낸 뒤 그 값을 이용해 연산한다.
 		if (list.cdr().car() instanceof ListNode)
 			Operand1 = (IntNode) runBinary((ListNode) list.cdr().car());
+		else if (list.cdr().car() instanceof IdNode)
+			Operand1 = (IntNode) lookupTable(((IdNode)list.cdr().car()).idString);
 		else
 			Operand1 = (IntNode) list.cdr().car();
 
 		if (list.cdr().cdr().car() instanceof ListNode)
 			Operand2 = (IntNode) runBinary((ListNode) list.cdr().cdr().car());
+		else if (list.cdr().cdr().car() instanceof IdNode)
+			Operand2 = (IntNode) lookupTable(((IdNode)list.cdr().cdr().car()).idString);
 		else
 			Operand2 = (IntNode) list.cdr().cdr().car();
 
