@@ -244,4 +244,8 @@ public class CuteInterpreter {
 			tmp = value;
 		VariableMap.put((((IdNode) id).idString), tmp);
 	}
+	
+	private Node lookupTable(String id) {
+		return VariableMap.get(id);
+	}
 }
