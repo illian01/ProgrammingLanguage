@@ -58,15 +58,19 @@ public class CuteInterpreter {
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 		case CAR:
-			ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-			// car이 ListNode일 경우 -> Quote로 묶어서 리턴
-			if (node1.car() instanceof ListNode)
-				return new QuoteNode((ListNode) node1.car());
-			// car이 ValueNode일 경우 -> 그대로 리턴
-			else if (node1.car() instanceof ValueNode)
-				return (ValueNode) node1.car();
+			if(operand.car() instanceof QuoteNode) {
+				ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+				
+				if (node1.car() instanceof ListNode)
+					return new QuoteNode((ListNode) node1.car());
+				else if (node1.car() instanceof IdNode)
+					return lookupTable(((IdNode)node1.car()).idString);
+				else
+					return node1.car();
+			}
+			else
+				return lookupTable(((IdNode)operand.car()).idString);
 
-			break;
 		case CDR:
 			ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
 			// cdr값을 Quote로 묶어서 리턴
@@ -168,9 +172,7 @@ public class CuteInterpreter {
 			return runList(ListNode.cons(cond, ((ListNode) remainder).cdr()));
 			
 		case DEFINE:
-			
-			
-			break;
+			insertTable(operand.car(), operand.cdr().car());
 		default:
 			break;
 		}
@@ -197,11 +199,15 @@ public class CuteInterpreter {
 		// 각 Node가 List라면 재귀적으로 연산해서 값을 얻어낸 뒤 그 값을 이용해 연산한다.
 		if (list.cdr().car() instanceof ListNode)
 			Operand1 = (IntNode) runBinary((ListNode) list.cdr().car());
+		else if (list.cdr().car() instanceof IdNode)
+			Operand1 = (IntNode) lookupTable(((IdNode)list.cdr().car()).idString);
 		else
 			Operand1 = (IntNode) list.cdr().car();
 
 		if (list.cdr().cdr().car() instanceof ListNode)
 			Operand2 = (IntNode) runBinary((ListNode) list.cdr().cdr().car());
+		else if (list.cdr().cdr().car() instanceof IdNode)
+			Operand2 = (IntNode) lookupTable(((IdNode)list.cdr().cdr().car()).idString);
 		else
 			Operand2 = (IntNode) list.cdr().cdr().car();
 
@@ -235,6 +241,19 @@ public class CuteInterpreter {
 	}
 
 	private void insertTable(Node id, Node value) {
-		
+		Node tmp;
+		if (value instanceof ListNode) {
+			if (((ListNode)value).car() instanceof BinaryOpNode)
+				tmp = runExpr(value);
+			else
+				tmp = ((ListNode)value).car();
+		}
+		else
+			tmp = value;
+		VariableMap.put((((IdNode) id).idString), tmp);
+	}
+	
+	private Node lookupTable(String id) {
+		return VariableMap.get(id);
 	}
 }
