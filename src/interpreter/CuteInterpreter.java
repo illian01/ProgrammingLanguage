@@ -1,6 +1,7 @@
 package interpreter;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 import parser.*;
@@ -36,8 +37,9 @@ public class CuteInterpreter {
 			return rootExpr;
 		else if (rootExpr instanceof BooleanNode)
 			return rootExpr;
-		else if (rootExpr instanceof ListNode)
+		else if (rootExpr instanceof ListNode){
 			return runList((ListNode) rootExpr);
+		}
 		else
 			errorLog("run Expr error");
 		return null;
@@ -62,18 +64,9 @@ public class CuteInterpreter {
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 			case CAR:
-				if(operand.car() instanceof QuoteNode) {
-					ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-
-					if (node1.car() instanceof ListNode)
-						return new QuoteNode((ListNode) node1.car());
-					else if (node1.car() instanceof IdNode)
-						return lookupTable(((IdNode)node1.car()).idString);
-					else
-						return node1.car();
-				}
-				else
-					return lookupTable(((IdNode)operand.car()).idString);
+                Node carNode = ((ListNode) (runQuote(operand))).car();
+                if (carNode instanceof IntNode) {return carNode;}
+                else {return new QuoteNode(carNode);}
 
 			case CDR:
 				ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
@@ -119,23 +112,48 @@ public class CuteInterpreter {
 
 			case EQ_Q:
 				// 비교할 앞 뒤 원소들을 추출한다.
-				QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
-				QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
+				Node eqVar1 = operand.car(); //head
+				Node eqVar2 = (ListNode) operand.cdr().car(); //tail
 
-				if (EQTest1.nodeInside() instanceof ValueNode) {
-					// 1번노드가 Value이고 2번노드가 List일 때 false
-					if (EQTest2.nodeInside() instanceof ListNode)
-						return BooleanNode.FALSE_NODE;
-					else {
-						// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
-						if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
-							return BooleanNode.TRUE_NODE;
-						else
-							return BooleanNode.FALSE_NODE;
-					}
-				} else {
-					return BooleanNode.FALSE_NODE;
-				}
+				/*if (eqVar1.equals(ListNode.EMPTYLIST) && eqVar2.equals(ListNode.EMPTYLIST)) return BooleanNode.TRUE_NODE;
+
+				if (eqVar1 instanceof ListNode){
+					if ()
+				}*/
+
+
+
+				/*if (eqVar1 instanceof ListNode){
+					if ( ((ListNode) eqVar1).car() instanceof QuoteNode) runQuote((ListNode) eqVar1);
+					eqVar1 = runExpr(eqVar1);}
+				if (eqVar2 instanceof ListNode) eqVar2 = runExpr(eqVar2); //중첩의 중첩 되는지 확인하기
+
+
+				if (eqVar1 instanceof IntNode && eqVar2 instanceof IntNode)
+					return ((IntNode)eqVar1).getValue() == ((IntNode) eqVar2).getValue();
+				if (eqVar1 instanceof IdNode && eqVar2 instanceof IdNode){
+					return (eqVar1.toString().equals(eqVar2.toString()))? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+				}*/
+//
+//
+//
+//				QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
+//				QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
+//
+//				if (EQTest1.nodeInside() instanceof ValueNode) {
+//					// 1번노드가 Value이고 2번노드가 List일 때 false
+//					if (EQTest2.nodeInside() instanceof ListNode)
+//						return BooleanNode.FALSE_NODE;
+//					else {
+//						// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
+//						if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
+//							return BooleanNode.TRUE_NODE;
+//						else
+//							return BooleanNode.FALSE_NODE;
+//					}
+//				} else {
+//					return BooleanNode.FALSE_NODE;
+//				}
 
 			case NOT:
 				// car이 BooleanNode이면 값을 뒤집어서 리턴
