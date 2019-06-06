@@ -170,7 +170,7 @@ public class CuteInterpreter {
 			FunctionNode cond = new FunctionNode();
 			cond.setValue(lexer.TokenType.COND);
 			return runList(ListNode.cons(cond, ((ListNode) remainder).cdr()));
-			
+
 		case DEFINE:
 			insertTable(operand.car(), operand.cdr().car());
 		default:
