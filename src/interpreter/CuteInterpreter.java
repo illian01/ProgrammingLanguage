@@ -8,7 +8,7 @@ import parser.*;
 public class CuteInterpreter {
 
 	public static HashMap<String, Node> VariableMap = new HashMap<String, Node>();
-	
+
 	public static void main(String[] args) {
 		Scanner sc = new Scanner(System.in);
 		while (true) {
@@ -57,127 +57,133 @@ public class CuteInterpreter {
 
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
-		case CAR:
-			if(operand.car() instanceof QuoteNode) {
-				ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-				
-				if (node1.car() instanceof ListNode)
-					return new QuoteNode((ListNode) node1.car());
-				else if (node1.car() instanceof IdNode)
-					return lookupTable(((IdNode)node1.car()).idString);
+			case CAR:
+				if(operand.car() instanceof QuoteNode) {
+					ListNode node1 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+
+					if (node1.car() instanceof ListNode)
+						return new QuoteNode((ListNode) node1.car());
+					else if (node1.car() instanceof IdNode)
+						return lookupTable(((IdNode)node1.car()).idString);
+					else
+						return node1.car();
+				}
 				else
-					return node1.car();
-			}
-			else
-				return lookupTable(((IdNode)operand.car()).idString);
+					return lookupTable(((IdNode)operand.car()).idString);
 
-		case CDR:
-			ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-			// cdr값을 Quote로 묶어서 리턴
-			return new QuoteNode((ListNode) node2.cdr());
-		case CONS:
-			Node head = operand.car();
-			// tail은 QuoteNode형태로 들어온다. QuoteNode의 값을 빼낸다.
-			ListNode tail = (ListNode) ((QuoteNode) ((ListNode) operand.cdr().car()).car()).nodeInside();
-			// car이 ValueNode일때
-			if (operand.car() instanceof ValueNode)
-				head = operand.car();
-			// car이 QuoteNode일때 값을 빼낸다.
-			else if (((ListNode) operand.car()).car() instanceof QuoteNode)
-				head = ((QuoteNode) ((ListNode) operand.car()).car()).nodeInside();
-			// cons로 head와 tail을 묶고, QuoteNode로 감싸서 리턴한다.
-			return new QuoteNode(ListNode.cons(head, tail));
+			case CDR:
+				ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+				// cdr값을 Quote로 묶어서 리턴
+				return new QuoteNode((ListNode) node2.cdr());
+			case CONS:
+				Node head = operand.car();
+				// tail은 QuoteNode형태로 들어온다. QuoteNode의 값을 빼낸다.
+				ListNode tail = (ListNode) ((QuoteNode) ((ListNode) operand.cdr().car()).car()).nodeInside();
+				// car이 ValueNode일때
+				if (operand.car() instanceof ValueNode)
+					head = operand.car();
+					// car이 QuoteNode일때 값을 빼낸다.
+				else if (((ListNode) operand.car()).car() instanceof QuoteNode)
+					head = ((QuoteNode) ((ListNode) operand.car()).car()).nodeInside();
+				// cons로 head와 tail을 묶고, QuoteNode로 감싸서 리턴한다.
+				return new QuoteNode(ListNode.cons(head, tail));
 
-		case NULL_Q:
-			// QuoteNode 인 car의 내부 값이 null인지 확인
-			ListNode NullTest = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-			// EMPTYIST일때 true
-			if (NullTest.equals(ListNode.EMPTYLIST))
-				return BooleanNode.TRUE_NODE;
-			// 아니라면 false
-			else
-				return BooleanNode.FALSE_NODE;
-		case ATOM_Q:
-			// QuoteNode car이 atom인지 확인
-			QuoteNode AtomTest = (QuoteNode) operand.car();
-
-			if (AtomTest.nodeInside() instanceof ListNode) {
-				// List인데 EMPTY이면 true
-				if (((ListNode) AtomTest.nodeInside()).equals(ListNode.EMPTYLIST))
+			case NULL_Q:
+				// QuoteNode 인 car의 내부 값이 null인지 확인
+				ListNode NullTest = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+				// EMPTYIST일때 true
+				if (NullTest.equals(ListNode.EMPTYLIST))
 					return BooleanNode.TRUE_NODE;
-				// List값이 존재하면 false
+					// 아니라면 false
 				else
 					return BooleanNode.FALSE_NODE;
-			}
-			// atom 이므로 true
-			else
-				return BooleanNode.TRUE_NODE;
+			case ATOM_Q:
+				// QuoteNode car이 atom인지 확인
+				QuoteNode AtomTest = (QuoteNode) operand.car();
 
-		case EQ_Q:
-			// 비교할 앞 뒤 원소들을 추출한다.
-			QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
-			QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
-
-			if (EQTest1.nodeInside() instanceof ValueNode) {
-				// 1번노드가 Value이고 2번노드가 List일 때 false
-				if (EQTest2.nodeInside() instanceof ListNode)
-					return BooleanNode.FALSE_NODE;
-				else {
-					// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
-					if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
+				if (AtomTest.nodeInside() instanceof ListNode) {
+					// List인데 EMPTY이면 true
+					if (((ListNode) AtomTest.nodeInside()).equals(ListNode.EMPTYLIST))
 						return BooleanNode.TRUE_NODE;
+						// List값이 존재하면 false
 					else
 						return BooleanNode.FALSE_NODE;
 				}
-			} else {
-				return BooleanNode.FALSE_NODE;
-			}
+				// atom 이므로 true
+				else
+					return BooleanNode.TRUE_NODE;
 
-		case NOT:
-			// car이 BooleanNode이면 값을 뒤집어서 리턴
-			if (operand.car() instanceof BooleanNode)
-				return ((BooleanNode) operand.car()).value ? BooleanNode.FALSE_NODE : BooleanNode.TRUE_NODE;
-			// car이 연산을 해야하는 Node이면 연산 후 값을 뒤집어서 리턴
-			else if (operand.car() instanceof BinaryOpNode)
-				return ((BooleanNode) runBinary(ListNode.cons(operand.car(), operand.cdr()))).value
-						? BooleanNode.FALSE_NODE
-						: BooleanNode.TRUE_NODE;
-			else
-				return ((BooleanNode) runFunction((FunctionNode) operand.car(), operand.cdr())).value
-						? BooleanNode.FALSE_NODE
-						: BooleanNode.TRUE_NODE;
+			case EQ_Q:
+				// 비교할 앞 뒤 원소들을 추출한다.
+				QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
+				QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
 
-		case COND:
-			Node remainder = operand;
-
-			// car이 ListNode일 때 연산을 한다. 연산 결과가 참이면 cdr.car리턴
-			if (((ListNode) remainder).car() instanceof ListNode) {
-				ListNode decision = (ListNode) ((ListNode) remainder).car();
-				if (decision.car() instanceof ListNode) {
-					if (((BooleanNode) runList((ListNode) decision.car())).value)
-						return decision.cdr().car();
+				if (EQTest1.nodeInside() instanceof ValueNode) {
+					// 1번노드가 Value이고 2번노드가 List일 때 false
+					if (EQTest2.nodeInside() instanceof ListNode)
+						return BooleanNode.FALSE_NODE;
+					else {
+						// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
+						if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
+							return BooleanNode.TRUE_NODE;
+						else
+							return BooleanNode.FALSE_NODE;
+					}
+				} else {
+					return BooleanNode.FALSE_NODE;
 				}
-			}
-			// car이 BooleanNode일 때 true이면 cdr.car을 리턴
-			else if (((ListNode) remainder).car() instanceof BooleanNode) {
-				if (((BooleanNode) ((ListNode) remainder).car()).value)
-					return ((ListNode) remainder).cdr().car();
-			}
-			// 모든 조건이 false이면 null을 출력하도록 설정
-			if (((ListNode) remainder).cdr() == null)
-				break;
-			// 다음 조건 검사. cdr에 cond토큰을 줘서 runList한다.
-			FunctionNode cond = new FunctionNode();
-			cond.setValue(lexer.TokenType.COND);
-			return runList(ListNode.cons(cond, ((ListNode) remainder).cdr()));
 
-		case DEFINE:
-			insertTable(operand.car(), operand.cdr().car());
-		default:
-			break;
+			case NOT:
+				// car이 BooleanNode이면 값을 뒤집어서 리턴
+				if (operand.car() instanceof BooleanNode)
+					return ((BooleanNode) operand.car()).value ? BooleanNode.FALSE_NODE : BooleanNode.TRUE_NODE;
+					// car이 연산을 해야하는 Node이면 연산 후 값을 뒤집어서 리턴
+				else if (operand.car() instanceof BinaryOpNode)
+					return ((BooleanNode) runBinary(ListNode.cons(operand.car(), operand.cdr()))).value
+							? BooleanNode.FALSE_NODE
+							: BooleanNode.TRUE_NODE;
+				else
+					return ((BooleanNode) runFunction((FunctionNode) operand.car(), operand.cdr())).value
+							? BooleanNode.FALSE_NODE
+							: BooleanNode.TRUE_NODE;
+
+			case COND:
+				if (operand == ListNode.EMPTYLIST) return new IdNode("Nothing true"); // operand is EMPTYLIST
+				Node condCar = operand.car();
+				if (condCar instanceof BooleanNode) {
+					if (condCar == BooleanNode.TRUE_NODE) return isBool(((ListNode) operand.car()).cdr().car());
+					return runFunction(operator, operand.cdr());
+				}
+				if (((ListNode) condCar).car() instanceof BooleanNode) {
+					if (((ListNode) condCar).car() == BooleanNode.TRUE_NODE) return isBool(((ListNode) condCar).cdr().car());
+					return runFunction(operator, (ListNode) operand.cdr());
+				}
+				if (((ListNode) condCar).car() instanceof ListNode) {
+					if (((ListNode) ((ListNode) condCar).car()).car() instanceof BinaryOpNode)
+						condCar = runBinary((ListNode) ((ListNode) condCar).car());
+					else condCar = runFunction((FunctionNode) ((ListNode) ((ListNode) condCar).car()).car(), ((ListNode) ((ListNode) condCar).car()).cdr());
+					if (condCar == BooleanNode.TRUE_NODE) return isBool(((ListNode) operand.car()).cdr().car());
+					return runFunction(operator, (ListNode) operand.cdr());
+				}
+			case DEFINE:
+				insertTable(operand.car(), operand.cdr().car());
+			default:
+				break;
 		}
 
 		return null;
+	}
+
+	private Node isBool(Node value) {
+		if (value instanceof ListNode){
+			if (((ListNode) value).car() instanceof BinaryOpNode){
+				return runBinary((ListNode)value);
+			}
+			if (((ListNode) value).car() instanceof FunctionNode){
+				return runFunction((FunctionNode)((ListNode) value).car(), ((ListNode) value).cdr());
+			}
+		}
+		return value;
 	}
 
 	private Node stripList(ListNode node) {
@@ -212,25 +218,25 @@ public class CuteInterpreter {
 			Operand2 = (IntNode) list.cdr().cdr().car();
 
 		switch (operator.binType) {
-		// 연산에 맞게 Node의 값을 연산하고, IntNode로 묶어서 리턴한다.
-		case PLUS:
-			return new IntNode(Integer.toString(Operand1.value + Operand2.value));
-		case MINUS:
-			return new IntNode(Integer.toString(Operand1.value - Operand2.value));
-		case TIMES:
-			return new IntNode(Integer.toString(Operand1.value * Operand2.value));
-		case DIV:
-			return new IntNode(Integer.toString(Operand1.value / Operand2.value));
-		// 비교연산에 맞게 true와 false를 구분한다.
-		case LT:
-			return Operand1.value < Operand2.value ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-		case GT:
-			return Operand1.value > Operand2.value ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-		case EQ:
-			return Operand1.value.intValue() == Operand2.value.intValue() ? BooleanNode.TRUE_NODE
-					: BooleanNode.FALSE_NODE;
-		default:
-			break;
+			// 연산에 맞게 Node의 값을 연산하고, IntNode로 묶어서 리턴한다.
+			case PLUS:
+				return new IntNode(Integer.toString(Operand1.value + Operand2.value));
+			case MINUS:
+				return new IntNode(Integer.toString(Operand1.value - Operand2.value));
+			case TIMES:
+				return new IntNode(Integer.toString(Operand1.value * Operand2.value));
+			case DIV:
+				return new IntNode(Integer.toString(Operand1.value / Operand2.value));
+			// 비교연산에 맞게 true와 false를 구분한다.
+			case LT:
+				return Operand1.value < Operand2.value ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+			case GT:
+				return Operand1.value > Operand2.value ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+			case EQ:
+				return Operand1.value.intValue() == Operand2.value.intValue() ? BooleanNode.TRUE_NODE
+						: BooleanNode.FALSE_NODE;
+			default:
+				break;
 		}
 
 		return null;
@@ -252,7 +258,7 @@ public class CuteInterpreter {
 			tmp = value;
 		VariableMap.put((((IdNode) id).idString), tmp);
 	}
-	
+
 	private Node lookupTable(String id) {
 		return VariableMap.get(id);
 	}
