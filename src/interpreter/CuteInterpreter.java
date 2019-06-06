@@ -31,7 +31,7 @@ public class CuteInterpreter {
 		if (rootExpr == null)
 			return null;
 		if (rootExpr instanceof IdNode)
-			return rootExpr;
+			return VariableMap.containsKey( ((IdNode) rootExpr).toString()) ? VariableMap.get(((IdNode) rootExpr).toString()):rootExpr;
 		else if (rootExpr instanceof IntNode)
 			return rootExpr;
 		else if (rootExpr instanceof BooleanNode)
@@ -44,8 +44,12 @@ public class CuteInterpreter {
 	}
 
 	private Node runList(ListNode list) {
-		if (list.equals(ListNode.EMPTYLIST))
+		if (list.car() instanceof IdNode) {
+			return runExpr(list.car());
+		}
+		if (list.equals(ListNode.EMPTYLIST)){
 			return list;
+		}
 		if (list.car() instanceof FunctionNode) {
 			return runFunction((FunctionNode) list.car(), (ListNode) stripList(list.cdr()));
 		}
@@ -165,8 +169,11 @@ public class CuteInterpreter {
 					if (condCar == BooleanNode.TRUE_NODE) return isBool(((ListNode) operand.car()).cdr().car());
 					return runFunction(operator, (ListNode) operand.cdr());
 				}
+				break;
 			case DEFINE:
-				insertTable(operand.car(), operand.cdr().car());
+				insertTable(operand.car(), operand.cdr().car()); //첫번째 인자로 변수명, 2번째 인자로 변수값
+				break;
+
 			default:
 				break;
 		}
@@ -246,12 +253,14 @@ public class CuteInterpreter {
 		return ((QuoteNode) node.car()).nodeInside();
 	}
 
-	private void insertTable(Node id, Node value) {
+	private void insertTable(Node id, Node value) { //id는 변수명, value는 변수값
 		Node tmp;
-		if (value instanceof ListNode) {
-			if (((ListNode)value).car() instanceof BinaryOpNode)
+		if (value instanceof ListNode) { //value가 ListNode일 경우
+			if (((ListNode)value).car() instanceof BinaryOpNode) //첫번째 노드가 BinaryOpNode일 경우
 				tmp = runExpr(value);
-			else
+			else // List안의 Int, id, boolean
+				 // List 안에 FunctionNode 기능 구현해야하는가? 문의하기
+				 // define으로 함수정의 기능 (추가구현)
 				tmp = ((ListNode)value).car();
 		}
 		else
