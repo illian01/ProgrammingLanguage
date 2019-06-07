@@ -225,9 +225,15 @@ public class CuteInterpreter {
 	private Node runBinary(ListNode list) {
 		BinaryOpNode operator = (BinaryOpNode) list.car();
 
+		Node o1 = runExpr(list.cdr().car());
+		Node o2 = runExpr(list.cdr().cdr().car());
+		if( !(o1 instanceof IntNode) || !(o2 instanceof IntNode) ){
+			return null;
+		}
+
 		// operand2개를 추출한다.
-		IntNode Operand1;
-		IntNode Operand2;
+		IntNode Operand1 = (IntNode) o1;
+		IntNode Operand2 = (IntNode) o2;
 
 		// 각 Node가 List라면 재귀적으로 연산해서 값을 얻어낸 뒤 그 값을 이용해 연산한다.
 		if (list.cdr().car() instanceof ListNode)
