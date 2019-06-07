@@ -115,11 +115,44 @@ public class CuteInterpreter {
 				Node eqVar1 = operand.car(); //head
 				Node eqVar2 = (ListNode) operand.cdr().car(); //tail
 
-				/*if (eqVar1.equals(ListNode.EMPTYLIST) && eqVar2.equals(ListNode.EMPTYLIST)) return BooleanNode.TRUE_NODE;
 
-				if (eqVar1 instanceof ListNode){
-					if ()
-				}*/
+				if (!(eqVar1 instanceof ListNode)){	//둘 다atom일 경우
+					if (!(eqVar2 instanceof ListNode)){
+						return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+					}
+				}
+
+				if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+					if (((ListNode) eqVar1).car() instanceof FunctionNode){}
+					if (((ListNode) eqVar1).car() instanceof BinaryOpNode){}
+				}
+				if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+					if (((ListNode) eqVar2).car() instanceof FunctionNode){}
+					if (((ListNode) eqVar2).car() instanceof BinaryOpNode){}
+				}
+
+				if (eqVar1 instanceof QuoteNode){
+					if (eqVar2 instanceof QuoteNode){ //둘 다 QuoteNode일 때
+						QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
+						QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
+						//둘 다 Quote 중 EMPTYLIST일 경우
+						if (EQTest2.nodeInside().equals(ListNode.EMPTYLIST) && EQTest1.nodeInside().equals(ListNode.EMPTYLIST)) return BooleanNode.TRUE_NODE;
+						if (EQTest1.nodeInside() instanceof ValueNode) {
+							// 1번노드가 Value이고 2번노드가 List일 때 false
+							if (EQTest2.nodeInside() instanceof ListNode)
+								return BooleanNode.FALSE_NODE;
+							else {
+								// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
+								if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
+									return BooleanNode.TRUE_NODE;
+								else
+									return BooleanNode.FALSE_NODE;
+							}
+						} else {
+							return BooleanNode.FALSE_NODE;
+						}
+					}
+				}
 
 
 
