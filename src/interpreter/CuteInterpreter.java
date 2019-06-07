@@ -156,18 +156,20 @@ public class CuteInterpreter {
 //				}
 
 			case NOT:
-				// car이 BooleanNode이면 값을 뒤집어서 리턴
-				if (operand.car() instanceof BooleanNode)
-					return ((BooleanNode) operand.car()).value ? BooleanNode.FALSE_NODE : BooleanNode.TRUE_NODE;
-					// car이 연산을 해야하는 Node이면 연산 후 값을 뒤집어서 리턴
-				else if (operand.car() instanceof BinaryOpNode)
-					return ((BooleanNode) runBinary(ListNode.cons(operand.car(), operand.cdr()))).value
-							? BooleanNode.FALSE_NODE
-							: BooleanNode.TRUE_NODE;
-				else
-					return ((BooleanNode) runFunction((FunctionNode) operand.car(), operand.cdr())).value
-							? BooleanNode.FALSE_NODE
-							: BooleanNode.TRUE_NODE;
+				if(operand.car().equals(BooleanNode.TRUE_NODE)){	//TrueNode가 대상이라면
+					return BooleanNode.FALSE_NODE;	//False로
+				}
+				else if(operand.car().equals(BooleanNode.FALSE_NODE)){	//FalseNode라면
+					return BooleanNode.TRUE_NODE;	//TrueNode로
+				}
+				else{	//그외에 다른게 왔다면, 먼저 결과를 처리하고 Not을 반환
+					if(runExpr(operand) instanceof BooleanNode){
+						return runFunction(operator, ListNode.cons(runExpr(operand), ListNode.EMPTYLIST) );
+					}
+					else{
+						return null;
+					}
+				}
 
 			case COND:
 				if (operand == ListNode.EMPTYLIST) return new IdNode("Nothing true"); // operand is EMPTYLIST
