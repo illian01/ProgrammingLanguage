@@ -19,7 +19,7 @@ public class NodePrinter {
 		if(quoteNode.nodeInside() == null)
 			return ;
 		
-		sb.append("' ");							// ' 출력
+		sb.append("'");								// ' 출력
 		printNode(quoteNode.nodeInside());			// QuoteNode에는 Node를 필드 값으로 갖는다. 이를 printNode에 인자로 출력시킨다.
 	}
 	
