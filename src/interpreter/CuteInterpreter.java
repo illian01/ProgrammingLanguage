@@ -113,23 +113,25 @@ public class CuteInterpreter {
 			case EQ_Q:
 				// 비교할 앞 뒤 원소들을 추출한다.
 				Node eqVar1 = operand.car(); //head
-				Node eqVar2 = (ListNode) operand.cdr().car(); //tail
+				Node eqVar2 = operand.cdr().car(); //tail
 
-
-				if (!(eqVar1 instanceof ListNode)){	//둘 다atom일 경우
-					if (!(eqVar2 instanceof ListNode)){
-						return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-					}
+                if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+                    if (((ListNode) eqVar2).car() instanceof FunctionNode){
+                        eqVar2 = runFunction((FunctionNode)((ListNode) eqVar2).car(), ((ListNode) eqVar2).cdr());
+                    }
+                    if (((ListNode) eqVar2).car() instanceof BinaryOpNode){eqVar2 = runBinary((ListNode)eqVar2);}
+                }
+                if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+					if (((ListNode) eqVar1).car() instanceof FunctionNode){
+					    eqVar1 = runFunction((FunctionNode)((ListNode) eqVar1).car(), ((ListNode) eqVar1).cdr());
+                    }
+					if (((ListNode) eqVar1).car() instanceof BinaryOpNode){ eqVar1 = runBinary((ListNode)eqVar1); }
 				}
-
-				if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
-					if (((ListNode) eqVar1).car() instanceof FunctionNode){}
-					if (((ListNode) eqVar1).car() instanceof BinaryOpNode){}
-				}
-				if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
-					if (((ListNode) eqVar2).car() instanceof FunctionNode){}
-					if (((ListNode) eqVar2).car() instanceof BinaryOpNode){}
-				}
+                if (!(eqVar1 instanceof ListNode)){
+                    if (!(eqVar2 instanceof ListNode)){//둘 다atom일 경우
+                        return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+                    }
+                }
 
 				if (eqVar1 instanceof QuoteNode){
 					if (eqVar2 instanceof QuoteNode){ //둘 다 QuoteNode일 때
@@ -213,6 +215,17 @@ public class CuteInterpreter {
 					if (((ListNode) condCar).car() == BooleanNode.TRUE_NODE) return isBool(((ListNode) condCar).cdr().car());
 					return runFunction(operator, (ListNode) operand.cdr());
 				}
+				if (((ListNode) condCar).car() instanceof BinaryOpNode){	// cond의 조건 안에 BinaryOpNode가 있을 경우
+					if (runBinary((ListNode)condCar).equals(BooleanNode.TRUE_NODE)){
+						if (operand.cdr().car() instanceof ListNode){
+							if (((ListNode)operand.cdr().car()).car() instanceof BinaryOpNode){ return runBinary((ListNode) operand.cdr().car());}
+							if (((ListNode)operand.cdr().car()).car() instanceof FunctionNode){
+								return runFunction((FunctionNode)((ListNode)operand.cdr().car()).car(),((ListNode)operand.cdr().car()).cdr());
+							}
+						}
+						return operand.cdr().car();	//atom일 경우
+					}
+				}
 				if (((ListNode) condCar).car() instanceof ListNode) {
 					if (((ListNode) ((ListNode) condCar).car()).car() instanceof BinaryOpNode)
 						condCar = runBinary((ListNode) ((ListNode) condCar).car());
@@ -221,6 +234,7 @@ public class CuteInterpreter {
 					return runFunction(operator, (ListNode) operand.cdr());
 				}
 				break;
+
 			case DEFINE:
 				insertTable(operand.car(), operand.cdr().car()); //첫번째 인자로 변수명, 2번째 인자로 변수값
 				break;
