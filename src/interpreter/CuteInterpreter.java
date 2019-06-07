@@ -129,12 +129,14 @@ public class CuteInterpreter {
 				}
                 if (!(eqVar1 instanceof ListNode)){
                     if (!(eqVar2 instanceof ListNode)){//둘 다atom일 경우
+                    	if (VariableMap.containsKey(eqVar1.toString())) { eqVar1 = VariableMap.get(eqVar1.toString()); }
+                    	if (VariableMap.containsKey(eqVar2.toString())) { eqVar2 = VariableMap.get(eqVar2.toString()); }
                         return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
                     }
                 }
 
-				if (eqVar1 instanceof QuoteNode){
-					if (eqVar2 instanceof QuoteNode){ //둘 다 QuoteNode일 때
+				if (((ListNode)eqVar1).car() instanceof QuoteNode){
+					if (((ListNode)eqVar2).car() instanceof QuoteNode){ //둘 다 QuoteNode일 때
 						QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
 						QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
 						//둘 다 Quote 중 EMPTYLIST일 경우
@@ -155,6 +157,7 @@ public class CuteInterpreter {
 						}
 					}
 				}
+				break;
 
 
 
