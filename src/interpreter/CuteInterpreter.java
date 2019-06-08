@@ -1,9 +1,9 @@
 package interpreter;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
+import lexer.TokenType;
 import parser.*;
 
 public class CuteInterpreter {
@@ -112,77 +112,45 @@ public class CuteInterpreter {
 
 			case NULL_Q:
 				// QuoteNode 인 car의 내부 값이 null인지 확인
-				ListNode NullTest = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-				// EMPTYIST일때 true
-				if (NullTest.equals(ListNode.EMPTYLIST))
-					return BooleanNode.TRUE_NODE;
-					// 아니라면 false
-				else
-					return BooleanNode.FALSE_NODE;
-			case ATOM_Q:
-				// QuoteNode car이 atom인지 확인
-				QuoteNode AtomTest = (QuoteNode) operand.car();
+                Node test = runExpr(operand);
+				Node nullNode = operand.car() instanceof QuoteNode
+                        ? runQuote(operand)
+                        :(runExpr(operand) instanceof QuoteNode)
+                            ? runQuote(ListNode.cons(runExpr(operand),ListNode.EMPTYLIST))
+                            : runQuote((ListNode)runExpr(operand));
+                return nullNode.equals(ListNode.EMPTYLIST)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
 
-				if (AtomTest.nodeInside() instanceof ListNode) {
-					// List인데 EMPTY이면 true
-					if (((ListNode) AtomTest.nodeInside()).equals(ListNode.EMPTYLIST))
-						return BooleanNode.TRUE_NODE;
-						// List값이 존재하면 false
-					else
-						return BooleanNode.FALSE_NODE;
+			case ATOM_Q:
+				Node atomNode = operand.car() instanceof QuoteNode
+						? runQuote(operand)
+						: (operand.car() instanceof FunctionNode || operand.car() instanceof BinaryOpNode)
+							? runExpr(operand)
+							: runExpr(operand.car());
+				if (atomNode instanceof QuoteNode) atomNode = runQuote(ListNode.cons(atomNode, ListNode.EMPTYLIST));
+				if (atomNode instanceof ListNode) {
+					return atomNode.equals(ListNode.EMPTYLIST)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
 				}
-				// atom 이므로 true
-				else
-					return BooleanNode.TRUE_NODE;
+				return BooleanNode.TRUE_NODE;
 
 			case EQ_Q:
 				// 비교할 앞 뒤 원소들을 추출한다.
-				Node eqVar1 = operand.car(); //head
-				Node eqVar2 = operand.cdr().car(); //tail
+				FunctionNode atom = new FunctionNode();
+				atom.setValue(TokenType.ATOM_Q);
 
-				if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
-					if (((ListNode) eqVar2).car() instanceof FunctionNode){
-						eqVar2 = runFunction((FunctionNode)((ListNode) eqVar2).car(), ((ListNode) eqVar2).cdr());
-					}
-					if (((ListNode) eqVar2).car() instanceof BinaryOpNode){eqVar2 = runBinary((ListNode)eqVar2);}
-				}
-				if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
-					if (((ListNode) eqVar1).car() instanceof FunctionNode){
-						eqVar1 = runFunction((FunctionNode)((ListNode) eqVar1).car(), ((ListNode) eqVar1).cdr());
-					}
-					if (((ListNode) eqVar1).car() instanceof BinaryOpNode){ eqVar1 = runBinary((ListNode)eqVar1); }
-				}
-				if (!(eqVar1 instanceof ListNode)){
-					if (!(eqVar2 instanceof ListNode)){//둘 다atom일 경우
-						if (VariableMap.containsKey(eqVar1.toString())) { eqVar1 = VariableMap.get(eqVar1.toString()); }
-						if (VariableMap.containsKey(eqVar2.toString())) { eqVar2 = VariableMap.get(eqVar2.toString()); }
-						return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-					}
-				}
+				ListNode eqVar1 = runExpr(operand.car()) instanceof ListNode
+						? (ListNode)runExpr(operand.car())
+						: ListNode.cons(runExpr(operand.car()), ListNode.EMPTYLIST);
+				ListNode eqVar2 = runExpr(operand.cdr().car()) instanceof ListNode
+						? (ListNode)runExpr(operand.cdr().car())
+						: ListNode.cons(runExpr(operand.cdr().car()), ListNode.EMPTYLIST); //tail
 
-				if (((ListNode)eqVar1).car() instanceof QuoteNode){
-					if (((ListNode)eqVar2).car() instanceof QuoteNode){ //둘 다 QuoteNode일 때
-						QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
-						QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
-						//둘 다 Quote 중 EMPTYLIST일 경우
-						if (EQTest2.nodeInside().equals(ListNode.EMPTYLIST) && EQTest1.nodeInside().equals(ListNode.EMPTYLIST)) return BooleanNode.TRUE_NODE;
-						if (EQTest1.nodeInside() instanceof ValueNode) {
-							// 1번노드가 Value이고 2번노드가 List일 때 false
-							if (EQTest2.nodeInside() instanceof ListNode)
-								return BooleanNode.FALSE_NODE;
-							else {
-								// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
-								if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
-									return BooleanNode.TRUE_NODE;
-								else
-									return BooleanNode.FALSE_NODE;
-							}
-						} else {
-							return BooleanNode.FALSE_NODE;
-						}
-					}
-				}
-				break;
+				if (runFunction(atom, eqVar1).equals(BooleanNode.TRUE_NODE)
+                && runFunction(atom, eqVar2).equals(BooleanNode.TRUE_NODE)){
+				    if (eqVar1.car() instanceof QuoteNode && eqVar2.car() instanceof QuoteNode)
+				        return runQuote(eqVar1).equals(runQuote(eqVar2))? BooleanNode.TRUE_NODE:BooleanNode.FALSE_NODE;
+				    return eqVar1.car().equals(eqVar2.car()) ? BooleanNode.TRUE_NODE: BooleanNode.FALSE_NODE;
+                }
+				return BooleanNode.FALSE_NODE;
 
 			case NOT:
 				if(operand.car().equals(BooleanNode.TRUE_NODE)){	//TrueNode가 대상이라면
