@@ -79,7 +79,22 @@ public class CuteInterpreter {
 				break;
 
 			case CDR:
-				ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
+				Node cdrNode = operand.car();
+				if (cdrNode.equals(ListNode.EMPTYLIST)) { return null; } //Error
+				if (cdrNode instanceof QuoteNode){
+					if (((QuoteNode) cdrNode).nodeInside() instanceof ListNode){
+						Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr();
+						return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
+					}
+					return null; //error
+				}
+				if (operand instanceof ListNode){
+					return runFunction(operator, ListNode.cons(runExpr(operand),ListNode.EMPTYLIST));
+				}
+				break;
+
+
+				/*ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
 				// cdr값을 Quote로 묶어서 리턴
 				return new QuoteNode((ListNode) node2.cdr());*/
 			case CONS:
