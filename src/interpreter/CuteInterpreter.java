@@ -64,14 +64,24 @@ public class CuteInterpreter {
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 			case CAR:
-                Node carNode = ((ListNode) (runQuote(operand))).car();
-                if (carNode instanceof IntNode) {return carNode;}
-                else {return new QuoteNode(carNode);}
+				Node node = operand.car();
+				if (node.equals(ListNode.EMPTYLIST)) { return null; } //Error
+				if (node instanceof QuoteNode){
+					if (((QuoteNode) node).nodeInside() instanceof ListNode){
+						Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car();
+						return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
+					}
+					return null; //error
+				}
+				if (operand instanceof ListNode){
+					return runFunction(operator, ListNode.cons(runExpr(operand),ListNode.EMPTYLIST));
+				}
+				break;
 
 			case CDR:
 				ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
 				// cdr값을 Quote로 묶어서 리턴
-				return new QuoteNode((ListNode) node2.cdr());
+				return new QuoteNode((ListNode) node2.cdr());*/
 			case CONS:
 				Node head = operand.car();
 				// tail은 QuoteNode형태로 들어온다. QuoteNode의 값을 빼낸다.
@@ -115,25 +125,25 @@ public class CuteInterpreter {
 				Node eqVar1 = operand.car(); //head
 				Node eqVar2 = operand.cdr().car(); //tail
 
-                if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
-                    if (((ListNode) eqVar2).car() instanceof FunctionNode){
-                        eqVar2 = runFunction((FunctionNode)((ListNode) eqVar2).car(), ((ListNode) eqVar2).cdr());
-                    }
-                    if (((ListNode) eqVar2).car() instanceof BinaryOpNode){eqVar2 = runBinary((ListNode)eqVar2);}
-                }
-                if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+				if (eqVar2 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
+					if (((ListNode) eqVar2).car() instanceof FunctionNode){
+						eqVar2 = runFunction((FunctionNode)((ListNode) eqVar2).car(), ((ListNode) eqVar2).cdr());
+					}
+					if (((ListNode) eqVar2).car() instanceof BinaryOpNode){eqVar2 = runBinary((ListNode)eqVar2);}
+				}
+				if (eqVar1 instanceof ListNode){//ListNode중에서 반환값이 FunctionNode이거나 BinaryOpNode일경우
 					if (((ListNode) eqVar1).car() instanceof FunctionNode){
-					    eqVar1 = runFunction((FunctionNode)((ListNode) eqVar1).car(), ((ListNode) eqVar1).cdr());
-                    }
+						eqVar1 = runFunction((FunctionNode)((ListNode) eqVar1).car(), ((ListNode) eqVar1).cdr());
+					}
 					if (((ListNode) eqVar1).car() instanceof BinaryOpNode){ eqVar1 = runBinary((ListNode)eqVar1); }
 				}
-                if (!(eqVar1 instanceof ListNode)){
-                    if (!(eqVar2 instanceof ListNode)){//둘 다atom일 경우
-                    	if (VariableMap.containsKey(eqVar1.toString())) { eqVar1 = VariableMap.get(eqVar1.toString()); }
-                    	if (VariableMap.containsKey(eqVar2.toString())) { eqVar2 = VariableMap.get(eqVar2.toString()); }
-                        return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-                    }
-                }
+				if (!(eqVar1 instanceof ListNode)){
+					if (!(eqVar2 instanceof ListNode)){//둘 다atom일 경우
+						if (VariableMap.containsKey(eqVar1.toString())) { eqVar1 = VariableMap.get(eqVar1.toString()); }
+						if (VariableMap.containsKey(eqVar2.toString())) { eqVar2 = VariableMap.get(eqVar2.toString()); }
+						return eqVar1.equals(eqVar2)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+					}
+				}
 
 				if (((ListNode)eqVar1).car() instanceof QuoteNode){
 					if (((ListNode)eqVar2).car() instanceof QuoteNode){ //둘 다 QuoteNode일 때
@@ -158,40 +168,6 @@ public class CuteInterpreter {
 					}
 				}
 				break;
-
-
-
-				/*if (eqVar1 instanceof ListNode){
-					if ( ((ListNode) eqVar1).car() instanceof QuoteNode) runQuote((ListNode) eqVar1);
-					eqVar1 = runExpr(eqVar1);}
-				if (eqVar2 instanceof ListNode) eqVar2 = runExpr(eqVar2); //중첩의 중첩 되는지 확인하기
-
-
-				if (eqVar1 instanceof IntNode && eqVar2 instanceof IntNode)
-					return ((IntNode)eqVar1).getValue() == ((IntNode) eqVar2).getValue();
-				if (eqVar1 instanceof IdNode && eqVar2 instanceof IdNode){
-					return (eqVar1.toString().equals(eqVar2.toString()))? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
-				}*/
-//
-//
-//
-//				QuoteNode EQTest1 = (QuoteNode) ((ListNode) operand.car()).car();
-//				QuoteNode EQTest2 = (QuoteNode) ((ListNode) operand.cdr().car()).car();
-//
-//				if (EQTest1.nodeInside() instanceof ValueNode) {
-//					// 1번노드가 Value이고 2번노드가 List일 때 false
-//					if (EQTest2.nodeInside() instanceof ListNode)
-//						return BooleanNode.FALSE_NODE;
-//					else {
-//						// 둘 다 Value일 때 값을 비교, 같으면 true 다르면 false
-//						if (((ValueNode) EQTest1.nodeInside()).equals(EQTest2.nodeInside()))
-//							return BooleanNode.TRUE_NODE;
-//						else
-//							return BooleanNode.FALSE_NODE;
-//					}
-//				} else {
-//					return BooleanNode.FALSE_NODE;
-//				}
 
 			case NOT:
 				if(operand.car().equals(BooleanNode.TRUE_NODE)){	//TrueNode가 대상이라면
@@ -335,8 +311,8 @@ public class CuteInterpreter {
 			if (((ListNode)value).car() instanceof BinaryOpNode) //첫번째 노드가 BinaryOpNode일 경우
 				tmp = runExpr(value);
 			else // List안의 Int, id, boolean
-				 // List 안에 FunctionNode 기능 구현해야하는가? 문의하기
-				 // define으로 함수정의 기능 (추가구현)
+				// List 안에 FunctionNode 기능 구현해야하는가? 문의하기
+				// define으로 함수정의 기능 (추가구현)
 				tmp = ((ListNode)value).car();
 		}
 		else
