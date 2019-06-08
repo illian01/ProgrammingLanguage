@@ -1,9 +1,9 @@
 package interpreter;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
+import lexer.TokenType;
 import parser.*;
 
 public class CuteInterpreter {
@@ -120,20 +120,16 @@ public class CuteInterpreter {
 				else
 					return BooleanNode.FALSE_NODE;
 			case ATOM_Q:
-				// QuoteNode car이 atom인지 확인
-				QuoteNode AtomTest = (QuoteNode) operand.car();
-
-				if (AtomTest.nodeInside() instanceof ListNode) {
-					// List인데 EMPTY이면 true
-					if (((ListNode) AtomTest.nodeInside()).equals(ListNode.EMPTYLIST))
-						return BooleanNode.TRUE_NODE;
-						// List값이 존재하면 false
-					else
-						return BooleanNode.FALSE_NODE;
+				Node atomNode = operand.car() instanceof QuoteNode
+						? runQuote(operand)
+						: (operand.car() instanceof FunctionNode || operand.car() instanceof BinaryOpNode)
+							? runExpr(operand)
+							: runExpr(operand.car());
+				if (atomNode instanceof QuoteNode) atomNode = runQuote(ListNode.cons(atomNode, ListNode.EMPTYLIST));
+				if (atomNode instanceof ListNode) {
+					return atomNode.equals(ListNode.EMPTYLIST)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
 				}
-				// atom 이므로 true
-				else
-					return BooleanNode.TRUE_NODE;
+				return BooleanNode.TRUE_NODE;
 
 			case EQ_Q:
 				// 비교할 앞 뒤 원소들을 추출한다.
