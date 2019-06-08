@@ -112,13 +112,14 @@ public class CuteInterpreter {
 
 			case NULL_Q:
 				// QuoteNode 인 car의 내부 값이 null인지 확인
-				ListNode NullTest = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-				// EMPTYIST일때 true
-				if (NullTest.equals(ListNode.EMPTYLIST))
-					return BooleanNode.TRUE_NODE;
-					// 아니라면 false
-				else
-					return BooleanNode.FALSE_NODE;
+                Node test = runExpr(operand);
+				Node nullNode = operand.car() instanceof QuoteNode
+                        ? runQuote(operand)
+                        :(runExpr(operand) instanceof QuoteNode)
+                            ? runQuote(ListNode.cons(runExpr(operand),ListNode.EMPTYLIST))
+                            : runQuote((ListNode)runExpr(operand));
+                return nullNode.equals(ListNode.EMPTYLIST)? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE;
+
 			case ATOM_Q:
 				Node atomNode = operand.car() instanceof QuoteNode
 						? runQuote(operand)
