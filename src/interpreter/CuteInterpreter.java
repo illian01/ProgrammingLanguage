@@ -201,36 +201,18 @@ public class CuteInterpreter {
 				}
 
 			case COND:
-				if (operand == ListNode.EMPTYLIST) return new IdNode("Nothing true"); // operand is EMPTYLIST
-				Node condCar = operand.car();
-				if (condCar instanceof BooleanNode) {
-					if (condCar == BooleanNode.TRUE_NODE) return isBool(((ListNode) operand.car()).cdr().car());
-					return runFunction(operator, operand.cdr());
-				}
-				if (((ListNode) condCar).car() instanceof BooleanNode) {
-					if (((ListNode) condCar).car() == BooleanNode.TRUE_NODE) return isBool(((ListNode) condCar).cdr().car());
-					return runFunction(operator, (ListNode) operand.cdr());
-				}
-				if (((ListNode) condCar).car() instanceof BinaryOpNode){	// cond의 조건 안에 BinaryOpNode가 있을 경우
-					if (runBinary((ListNode)condCar).equals(BooleanNode.TRUE_NODE)){
-						if (operand.cdr().car() instanceof ListNode){
-							if (((ListNode)operand.cdr().car()).car() instanceof BinaryOpNode){ return runBinary((ListNode) operand.cdr().car());}
-							if (((ListNode)operand.cdr().car()).car() instanceof FunctionNode){
-								return runFunction((FunctionNode)((ListNode)operand.cdr().car()).car(),((ListNode)operand.cdr().car()).cdr());
-							}
-						}
-						return operand.cdr().car();	//atom일 경우
-					}
-				}
-				if (((ListNode) condCar).car() instanceof ListNode) {
-					if (((ListNode) ((ListNode) condCar).car()).car() instanceof BinaryOpNode)
-						condCar = runBinary((ListNode) ((ListNode) condCar).car());
-					else condCar = runFunction((FunctionNode) ((ListNode) ((ListNode) condCar).car()).car(), ((ListNode) ((ListNode) condCar).car()).cdr());
-					if (condCar == BooleanNode.TRUE_NODE) return isBool(((ListNode) operand.car()).cdr().car());
-					return runFunction(operator, (ListNode) operand.cdr());
-				}
+                Node condNode = operand.car();
+                if (condNode instanceof BooleanNode){
+                    return condNode.equals(BooleanNode.TRUE_NODE) ? runExpr(operand.cdr().car()) : new IdNode("Nothing True");
+                }
+                if (condNode instanceof ListNode){
+                    return runExpr(((ListNode) condNode).car()).equals(BooleanNode.TRUE_NODE)
+                            ? runExpr(((ListNode)condNode).cdr().car())
+                            : (operand.cdr().equals(ListNode.EMPTYLIST)
+                                ? new IdNode("Nothing True")
+                                : runFunction(operator,operand.cdr()));
+                }
 				break;
-
 			case DEFINE:
 				insertTable(operand.car(), operand.cdr().car()); //첫번째 인자로 변수명, 2번째 인자로 변수값
 				break;
@@ -240,18 +222,6 @@ public class CuteInterpreter {
 		}
 
 		return null;
-	}
-
-	private Node isBool(Node value) {
-		if (value instanceof ListNode){
-			if (((ListNode) value).car() instanceof BinaryOpNode){
-				return runBinary((ListNode)value);
-			}
-			if (((ListNode) value).car() instanceof FunctionNode){
-				return runFunction((FunctionNode)((ListNode) value).car(), ((ListNode) value).cdr());
-			}
-		}
-		return value;
 	}
 
 	private Node stripList(ListNode node) {
@@ -275,21 +245,6 @@ public class CuteInterpreter {
 		// operand2개를 추출한다.
 		IntNode Operand1 = (IntNode) o1;
 		IntNode Operand2 = (IntNode) o2;
-
-		// 각 Node가 List라면 재귀적으로 연산해서 값을 얻어낸 뒤 그 값을 이용해 연산한다.
-		if (list.cdr().car() instanceof ListNode)
-			Operand1 = (IntNode) runBinary((ListNode) list.cdr().car());
-		else if (list.cdr().car() instanceof IdNode)
-			Operand1 = (IntNode) lookupTable(((IdNode)list.cdr().car()).idString);
-		else
-			Operand1 = (IntNode) list.cdr().car();
-
-		if (list.cdr().cdr().car() instanceof ListNode)
-			Operand2 = (IntNode) runBinary((ListNode) list.cdr().cdr().car());
-		else if (list.cdr().cdr().car() instanceof IdNode)
-			Operand2 = (IntNode) lookupTable(((IdNode)list.cdr().cdr().car()).idString);
-		else
-			Operand2 = (IntNode) list.cdr().cdr().car();
 
 		switch (operator.binType) {
 			// 연산에 맞게 Node의 값을 연산하고, IntNode로 묶어서 리턴한다.
