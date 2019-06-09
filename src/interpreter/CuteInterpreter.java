@@ -93,10 +93,6 @@ public class CuteInterpreter {
 				}
 				break;
 
-
-				/*ListNode node2 = (ListNode) ((QuoteNode) operand.car()).nodeInside();
-				// cdr값을 Quote로 묶어서 리턴
-				return new QuoteNode((ListNode) node2.cdr());*/
 			case CONS:
 				Node head = operand.car();
 				// tail은 QuoteNode형태로 들어온다. QuoteNode의 값을 빼낸다.
@@ -112,7 +108,6 @@ public class CuteInterpreter {
 
 			case NULL_Q:
 				// QuoteNode 인 car의 내부 값이 null인지 확인
-                Node test = runExpr(operand);
 				Node nullNode = operand.car() instanceof QuoteNode
                         ? runQuote(operand)
                         :(runExpr(operand) instanceof QuoteNode)
@@ -182,7 +177,8 @@ public class CuteInterpreter {
                 }
 				break;
 			case DEFINE:
-				insertTable(operand.car(), operand.cdr().car()); //첫번째 인자로 변수명, 2번째 인자로 변수값
+				//첫번째 인자로 변수명, 2번째 인자로 변수값
+				insertTable(operand.car(), runExpr(operand.cdr().car()));
 				break;
 
 			default:
@@ -246,15 +242,8 @@ public class CuteInterpreter {
 	private void insertTable(Node id, Node value) { //id는 변수명, value는 변수값
 		Node tmp;
 		if (value instanceof ListNode) { //value가 ListNode일 경우
-			if (((ListNode)value).car() instanceof BinaryOpNode) //첫번째 노드가 BinaryOpNode일 경우
-				tmp = runExpr(value);
-			else // List안의 Int, id, boolean
-				// List 안에 FunctionNode 기능 구현해야하는가? 문의하기
-				// define으로 함수정의 기능 (추가구현)
-				tmp = ((ListNode)value).car();
-		}
-		else
-			tmp = value;
+			tmp = ((ListNode)value).car();}
+		else {tmp = value;}
 		VariableMap.put((((IdNode) id).idString), tmp);
 	}
 
