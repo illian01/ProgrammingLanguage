@@ -176,7 +176,8 @@ public class CuteInterpreter {
 				}
 				break;
 			case DEFINE:
-				insertTable(operand.car(), operand.cdr().car()); //첫번째 인자로 변수명, 2번째 인자로 변수값
+				Node ret = runExpr(operand.cdr().car());
+				insertTable(operand.car(), ret); //첫번째 인자로 변수명, 2번째 인자로 변수값
 				//define을 만나면 Id노드에 대해 무조건적인 뒷부분 값을 넣음
 				break;
 
