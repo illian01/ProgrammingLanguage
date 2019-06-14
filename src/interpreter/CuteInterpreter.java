@@ -5,6 +5,7 @@ import java.util.Scanner;
 
 import lexer.TokenType;
 import parser.*;
+import parser.FunctionNode.FunctionType;
 
 public class CuteInterpreter {
 
@@ -218,13 +219,25 @@ public class CuteInterpreter {
 			}
 			break;
 		case DEFINE:
-			Node ret = runExpr(operand.cdr().car());
-			insertTable(operand.car(), ret); // 첫번째 인자로 변수명, 2번째 인자로 변수값
-			// define을 만나면 Id노드에 대해 무조건적인 뒷부분 값을 넣음
+			Node ret = operand.cdr().car();
+			
+			if (operand.cdr().car() instanceof ListNode) {
+				ListNode tmp = (ListNode) operand.cdr().car();
+				
+				if (tmp.car() instanceof FunctionNode)
+					if (!(((FunctionNode)tmp.car()).funcType == FunctionType.LAMBDA))
+						ret = runExpr(operand.cdr().car());
+				
+				if(tmp.car() instanceof BinaryOpNode)
+					ret = runExpr(operand.cdr().car());
+			}
+			
+			insertTable(operand.car(), ret);
+			
 			break;
 
 		case LAMBDA:
-			
+			System.out.println();
 			
 		default:
 			break;
@@ -285,17 +298,7 @@ public class CuteInterpreter {
 	}
 
 	private void insertTable(Node id, Node value) { // id는 변수명, value는 변수값
-		Node tmp;
-		if (value instanceof ListNode) { // value가 ListNode일 경우
-			if (((ListNode) value).car() instanceof BinaryOpNode) // 첫번째 노드가 BinaryOpNode일 경우
-				tmp = runExpr(value);
-			else // List안의 Int, id, boolean
-					// List 안에 FunctionNode 기능 구현해야하는가? 문의하기
-					// define으로 함수정의 기능 (추가구현)
-				tmp = ((ListNode) value).car();
-		} else
-			tmp = value;
-		VariableMap.put((((IdNode) id).idString), tmp);
+		VariableMap.put((((IdNode) id).idString), value);
 	}
 
 	private Node lookupTable(String id) {
