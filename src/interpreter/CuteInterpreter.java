@@ -1,6 +1,8 @@
 package interpreter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 import lexer.TokenType;
@@ -50,7 +52,7 @@ public class CuteInterpreter {
 
 	private Node runList(ListNode list) {
 		if (list.car() instanceof IdNode) {
-			return runExpr(list.car());
+			return runExpr(ListNode.cons(runExpr(list.car()), list.cdr()));
 		}
 		if (list.equals(ListNode.EMPTYLIST)) {
 			return list;
@@ -60,6 +62,37 @@ public class CuteInterpreter {
 		}
 		if (list.car() instanceof BinaryOpNode) {
 			return runBinary(list);
+		}
+		
+		if (list.car() instanceof ListNode) {
+			if (((ListNode)list.car()).car() instanceof FunctionNode) {
+				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
+				if(op.funcType == FunctionType.LAMBDA) {
+					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
+					ListNode actual = list.cdr();
+					ListNode operation = (ListNode) ((ListNode)list.car()).cdr().cdr().car();
+					HashMap<String, Node> localExtract = new HashMap<String, Node>();
+					
+					if (actual.equals(ListNode.EMPTYLIST)) return list;
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
+						if(VariableMap.containsKey(((IdNode)i.car()).idString))
+							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) {
+						insertTable((IdNode)i.car(), actual.car());
+						actual = actual.cdr();
+					}
+					
+					Node tmp = runList(operation);
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
+						insertTable(i.car(), localExtract.get(((IdNode)i.car()).idString));
+					
+					return tmp;
+				}
+				
+			}
 		}
 		
 		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
@@ -235,9 +268,6 @@ public class CuteInterpreter {
 			insertTable(operand.car(), ret);
 			
 			break;
-
-		case LAMBDA:
-			System.out.println();
 			
 		default:
 			break;
@@ -299,9 +329,13 @@ public class CuteInterpreter {
 
 	private void insertTable(Node id, Node value) { // id는 변수명, value는 변수값
 		VariableMap.put((((IdNode) id).idString), value);
+		/*HashMap<String, Node> tmp = VariableMap;
+		System.out.println();*/
+		
 	}
 
 	private Node lookupTable(String id) {
 		return VariableMap.get(id);
 	}
+	
 }
