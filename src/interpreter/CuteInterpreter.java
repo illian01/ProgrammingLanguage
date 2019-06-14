@@ -1,10 +1,13 @@
 package interpreter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 import lexer.TokenType;
 import parser.*;
+import parser.FunctionNode.FunctionType;
 
 public class CuteInterpreter {
 
@@ -49,7 +52,7 @@ public class CuteInterpreter {
 
 	private Node runList(ListNode list) {
 		if (list.car() instanceof IdNode) {
-			return runExpr(list.car());
+			return runExpr(ListNode.cons(runExpr(list.car()), list.cdr()));
 		}
 		if (list.equals(ListNode.EMPTYLIST)) {
 			return list;
@@ -61,6 +64,37 @@ public class CuteInterpreter {
 			return runBinary(list);
 		}
 		
+		if (list.car() instanceof ListNode) {
+			if (((ListNode)list.car()).car() instanceof FunctionNode) {
+				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
+				if(op.funcType == FunctionType.LAMBDA) {
+					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
+					ListNode actual = list.cdr();
+					ListNode operation = (ListNode) ((ListNode)list.car()).cdr().cdr().car();
+					HashMap<String, Node> localExtract = new HashMap<String, Node>();
+					
+					if (actual.equals(ListNode.EMPTYLIST)) return list;
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
+						if(VariableMap.containsKey(((IdNode)i.car()).idString))
+							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) {
+						insertTable((IdNode)i.car(), actual.car());
+						actual = actual.cdr();
+					}
+					
+					Node tmp = runList(operation);
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
+						insertTable(i.car(), localExtract.get(((IdNode)i.car()).idString));
+					
+					return tmp;
+				}
+				
+			}
+		}
+		
 		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
 	}
 
@@ -68,10 +102,13 @@ public class CuteInterpreter {
 		switch (operator.funcType) {
 		case CAR:
 			Node node = operand.car(); // ListNode의 첫번째 원소를 받아
-			if (node.equals(ListNode.EMPTYLIST)) {
-				return null;
-			} // 비어있을땐 예외
+			
 			if (node instanceof QuoteNode) { // Quote노드일경우
+				if (((QuoteNode) node).nodeInside().equals(ListNode.EMPTYLIST)) {
+					errorLog("Invalid Systax");
+					return null;
+				}
+				
 				if (((QuoteNode) node).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car(); // Quote노드의 첫 노드가
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에 감싸서 나옴
@@ -83,10 +120,13 @@ public class CuteInterpreter {
 
 		case CDR:
 			Node cdrNode = operand.car(); // CAR와 마찬가지로 동작
-			if (cdrNode.equals(ListNode.EMPTYLIST)) {
-				return null;
-			} // Error
+
 			if (cdrNode instanceof QuoteNode) {
+				if (((QuoteNode) cdrNode).nodeInside().equals(ListNode.EMPTYLIST)) {
+					errorLog("Invalid Systax");
+					return null;
+				}
+				
 				if (((QuoteNode) cdrNode).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr(); // 이부분만 다름
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
@@ -212,13 +252,22 @@ public class CuteInterpreter {
 			}
 			break;
 		case DEFINE:
-			Node ret = runExpr(operand.cdr().car());
-			insertTable(operand.car(), ret); // 첫번째 인자로 변수명, 2번째 인자로 변수값
-			// define을 만나면 Id노드에 대해 무조건적인 뒷부분 값을 넣음
-			break;
-
-		case LAMBDA:
+			Node ret = operand.cdr().car();
 			
+			if (operand.cdr().car() instanceof ListNode) {
+				ListNode tmp = (ListNode) operand.cdr().car();
+				
+				if (tmp.car() instanceof FunctionNode)
+					if (!(((FunctionNode)tmp.car()).funcType == FunctionType.LAMBDA))
+						ret = runExpr(operand.cdr().car());
+				
+				if(tmp.car() instanceof BinaryOpNode)
+					ret = runExpr(operand.cdr().car());
+			}
+			
+			insertTable(operand.car(), ret);
+			
+			break;
 			
 		default:
 			break;
@@ -279,20 +328,14 @@ public class CuteInterpreter {
 	}
 
 	private void insertTable(Node id, Node value) { // id는 변수명, value는 변수값
-		Node tmp;
-		if (value instanceof ListNode) { // value가 ListNode일 경우
-			if (((ListNode) value).car() instanceof BinaryOpNode) // 첫번째 노드가 BinaryOpNode일 경우
-				tmp = runExpr(value);
-			else // List안의 Int, id, boolean
-					// List 안에 FunctionNode 기능 구현해야하는가? 문의하기
-					// define으로 함수정의 기능 (추가구현)
-				tmp = ((ListNode) value).car();
-		} else
-			tmp = value;
-		VariableMap.put((((IdNode) id).idString), tmp);
+		VariableMap.put((((IdNode) id).idString), value);
+		/*HashMap<String, Node> tmp = VariableMap;
+		System.out.println();*/
+		
 	}
 
 	private Node lookupTable(String id) {
 		return VariableMap.get(id);
 	}
+	
 }
