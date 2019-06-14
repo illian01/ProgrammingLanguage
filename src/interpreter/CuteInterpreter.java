@@ -60,6 +60,7 @@ public class CuteInterpreter {
 		if (list.car() instanceof BinaryOpNode) {
 			return runBinary(list);
 		}
+		
 		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
 	}
 
@@ -73,15 +74,12 @@ public class CuteInterpreter {
 			if (node instanceof QuoteNode) { // Quote노드일경우
 				if (((QuoteNode) node).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car(); // Quote노드의 첫 노드가
-					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에
-																									// 감싸서 나옴
+					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에 감싸서 나옴
 				}
-				return null; // error
 			}
-			if (operand instanceof ListNode) { // 그 외에 operand가 ListNode라면
-				return runFunction(operator, ListNode.cons(runExpr(operand), ListNode.EMPTYLIST)); // 재귀적으로 뒷부분을 처리하고
-			} // 처리한 부분에 대해 car를 처리한다.
-			break;
+			
+			errorLog("Invalid Systax");
+			return null;
 
 		case CDR:
 			Node cdrNode = operand.car(); // CAR와 마찬가지로 동작
@@ -93,12 +91,11 @@ public class CuteInterpreter {
 					Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr(); // 이부분만 다름
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
 				}
-				return null; // error
 			}
-			if (operand instanceof ListNode) {
-				return runFunction(operator, ListNode.cons(runExpr(operand), ListNode.EMPTYLIST));
-			}
-			break;
+			
+			errorLog("Invalid Systax");
+			return null;
+			
 		case CONS:
 			Node head = operand.car();
 			Node tail = operand.cdr().car();
