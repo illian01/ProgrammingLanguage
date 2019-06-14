@@ -1,8 +1,6 @@
 package interpreter;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 import lexer.TokenType;
@@ -70,7 +68,7 @@ public class CuteInterpreter {
 				if(op.funcType == FunctionType.LAMBDA) {
 					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
 					ListNode actual = list.cdr();
-					ListNode operation = (ListNode) ((ListNode)list.car()).cdr().cdr().car();
+					ListNode operation = ((ListNode)list.car()).cdr().cdr();
 					HashMap<String, Node> localExtract = new HashMap<String, Node>();
 					
 					if (actual.equals(ListNode.EMPTYLIST)) return list;
@@ -80,11 +78,16 @@ public class CuteInterpreter {
 							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
 					
 					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) {
-						insertTable((IdNode)i.car(), actual.car());
+						if (!(actual.car() instanceof IdNode))
+							insertTable((IdNode)i.car(), actual.car());
 						actual = actual.cdr();
 					}
 					
-					Node tmp = runList(operation);
+					Node tmp = null;
+					while(!operation.equals(ListNode.EMPTYLIST)) {
+						tmp = runExpr(operation.car());
+						operation = operation.cdr();
+					}
 					
 					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
 						insertTable(i.car(), localExtract.get(((IdNode)i.car()).idString));
@@ -329,9 +332,6 @@ public class CuteInterpreter {
 
 	private void insertTable(Node id, Node value) { // id는 변수명, value는 변수값
 		VariableMap.put((((IdNode) id).idString), value);
-		/*HashMap<String, Node> tmp = VariableMap;
-		System.out.println();*/
-		
 	}
 
 	private Node lookupTable(String id) {
