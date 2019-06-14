@@ -60,7 +60,7 @@ public class CuteInterpreter {
 		if (list.car() instanceof BinaryOpNode) {
 			return runBinary(list);
 		}
-		return list;
+		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
 	}
 
 	private Node runFunction(FunctionNode operator, ListNode operand) {
@@ -150,10 +150,7 @@ public class CuteInterpreter {
 					: (runExpr(operand) instanceof QuoteNode) // 그외에는 뒤의 문법을 실행하고 그 친구가 QuoteNode라면
 							? runQuote(ListNode.cons(runExpr(operand), ListNode.EMPTYLIST)) // QuoteNode를 때고
 							: runQuote((ListNode) runExpr(operand)); // 그외에는 ListNode이고 그 아래에 QuoteNode일 경우이므로 그냥 넣는다
-			return nullNode.equals(ListNode.EMPTYLIST) ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE; // 위에서
-																											// nullNode가
-																											// '()이면
-																											// true
+			return nullNode.equals(ListNode.EMPTYLIST) ? BooleanNode.TRUE_NODE : BooleanNode.FALSE_NODE; // 위에서 nullNode가 '()이면 true
 
 		case ATOM_Q:
 			Node atomNode = operand.car() instanceof QuoteNode // 위와 같은원리로 작동하며
@@ -223,6 +220,9 @@ public class CuteInterpreter {
 			// define을 만나면 Id노드에 대해 무조건적인 뒷부분 값을 넣음
 			break;
 
+		case LAMBDA:
+			
+			
 		default:
 			break;
 		}
