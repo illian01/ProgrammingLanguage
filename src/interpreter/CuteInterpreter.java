@@ -68,10 +68,13 @@ public class CuteInterpreter {
 		switch (operator.funcType) {
 		case CAR:
 			Node node = operand.car(); // ListNode의 첫번째 원소를 받아
-			if (node.equals(ListNode.EMPTYLIST)) {
-				return null;
-			} // 비어있을땐 예외
+			
 			if (node instanceof QuoteNode) { // Quote노드일경우
+				if (((QuoteNode) node).nodeInside().equals(ListNode.EMPTYLIST)) {
+					errorLog("Invalid Systax");
+					return null;
+				}
+				
 				if (((QuoteNode) node).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car(); // Quote노드의 첫 노드가
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에 감싸서 나옴
@@ -83,10 +86,13 @@ public class CuteInterpreter {
 
 		case CDR:
 			Node cdrNode = operand.car(); // CAR와 마찬가지로 동작
-			if (cdrNode.equals(ListNode.EMPTYLIST)) {
-				return null;
-			} // Error
+
 			if (cdrNode instanceof QuoteNode) {
+				if (((QuoteNode) cdrNode).nodeInside().equals(ListNode.EMPTYLIST)) {
+					errorLog("Invalid Systax");
+					return null;
+				}
+				
 				if (((QuoteNode) cdrNode).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr(); // 이부분만 다름
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
