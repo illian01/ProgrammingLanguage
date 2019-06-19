@@ -26,7 +26,7 @@ public class CuteInterpreter {
 		}
 	}
 
-	private void errorLog(String err) {
+	private void errorLog(String err) { //에러 로그를 찍어주는 함수
 		System.out.println(err);
 	}
 
@@ -34,67 +34,68 @@ public class CuteInterpreter {
 		if (rootExpr == null)
 			return null;
 		if (rootExpr instanceof IdNode){ // ID노드일 경우 HashMap으로 작성된 테이블에서 ID노드의 String값으로 탐색을하고 있을땐 그에 맞는 노드 없다면 Id노드반환
-			if(VariableMap.containsKey(((IdNode) rootExpr).toString())){
-				if( VariableMap.get(((IdNode) rootExpr).toString()) instanceof ListNode )
-					return runList( (ListNode) VariableMap.get(((IdNode) rootExpr).toString()) );
-				return VariableMap.get(((IdNode) rootExpr).toString());
+			if(VariableMap.containsKey(((IdNode) rootExpr).toString())){		//키를 포함하고 있을때
+				if( VariableMap.get(((IdNode) rootExpr).toString()) instanceof ListNode )	//테이블에서 가져온 데이터가 List라면
+					return runList( (ListNode) VariableMap.get(((IdNode) rootExpr).toString()) );	//List에 대한 내용을 수행하고 가져온다.
+				return VariableMap.get(((IdNode) rootExpr).toString());	//그 외에는 그냥 가져온다
 			}
 			else				
-				return rootExpr;
+				return rootExpr;	// 매치되는게 없을경우 자기자신 반환
 		}
-		else if (rootExpr instanceof IntNode)
+		else if (rootExpr instanceof IntNode)	// 이후 ListNode가 아니라면 자기자신을 리턴한다.
 			return rootExpr;
 		else if (rootExpr instanceof BooleanNode)
 			return rootExpr;
-		else if (rootExpr instanceof ListNode) {
-			return runList((ListNode) rootExpr);
+		else if (rootExpr instanceof ListNode) {	// ListNode라면
+			return runList((ListNode) rootExpr);	// List내의 내용을 수행한다.
 		} else
 			errorLog("run Expr error");
 		return null;
 	}
 
 	private Node runList(ListNode list) {
-		if (list.car() instanceof IdNode) {
-			return runList(ListNode.cons( runExpr(list.car()) , list.cdr()));
+		if (list.car() instanceof IdNode) {		//List의 첫 시작이 idNode라면
+			return runList(ListNode.cons( runExpr(list.car()) , list.cdr())); //runExpr을 통해 테이블에 있는값을 가져오고, 뒤의 인자를 넘겨준다.
 		}
 		if (list.equals(ListNode.EMPTYLIST)) {
 			return list;
 		}
-		if (list.car() instanceof FunctionNode) {
-			if( ((FunctionNode)list.car()).funcType == FunctionType.LAMBDA ){
+		if (list.car() instanceof FunctionNode) {	// 시작이 FuntionNode일 경우
+			if( ((FunctionNode)list.car()).funcType == FunctionType.LAMBDA ){	// 첫 시작이 Lamda일 경우 반환을 해준다. ( 인자 없을때 )
 				return list;
 			}
-			return runFunction((FunctionNode) list.car(), (ListNode) stripList(list.cdr()));
+			return runFunction((FunctionNode) list.car(), (ListNode) stripList(list.cdr())); //그 외에는 각 명령어에 맞는 동작을 수행한다.
 		}
-		if (list.car() instanceof BinaryOpNode) {
+		if (list.car() instanceof BinaryOpNode) {	//이항 연산자도 같은 연산을 수행한다.
 			return runBinary(list);
 		}
 		if (list.car() instanceof ListNode) {
 			if (((ListNode)list.car()).car() instanceof FunctionNode) {
 				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
 				if(op.funcType == FunctionType.LAMBDA) {
-					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
-					Node actual = runExpr(list.cdr().car());
-					ListNode operation = ((ListNode)list.car()).cdr().cdr();
-					HashMap<String, Node> localExtract = new HashMap<String, Node>();
+					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();			// formal parameter list
+					ListNode actual = list.cdr();												// actual parameter list
+					ListNode operation = ((ListNode)list.car()).cdr().cdr();					// function body
+					HashMap<String, Node> localExtract = (HashMap<String, Node>) VariableMap.clone();			// 지역변수 처리를 위한 버퍼
 					
 					if (actual.equals(ListNode.EMPTYLIST)) return list;	//인자가 없으면 걍 자기자신 리턴
 					
-					if(!formal.equals(ListNode.EMPTYLIST))
-							insertTable( formal.car(), actual);
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) { // formal parameter에 actual parameter를 대입
+						Node temp = runExpr(actual.car());
+						insertTable((IdNode)i.car(), runExpr(actual.car()));
+						actual = actual.cdr();
+					}
 					
 					Node tmp = null;
-					while(!operation.equals(ListNode.EMPTYLIST)) {
+					while(!operation.equals(ListNode.EMPTYLIST)) {							// function body 실행
 						tmp = runExpr(operation.car());
 						operation = operation.cdr();
 					}
 					
-					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
-						insertTable(i.car(), localExtract.get(((IdNode)i.car()).idString));
+					VariableMap = localExtract;		// 지역변수 초기화
 					
 					return tmp;
 				}
-				
 			}
 		}
 		return list;
@@ -103,15 +104,15 @@ public class CuteInterpreter {
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 		case CAR:
-			Node node = runExpr(operand);
-			if( node instanceof ListNode )
-				node = ((ListNode) stripList((ListNode) node)).car();
-			if (node instanceof QuoteNode) { // Quote노드일경우
-				if (((QuoteNode) node).nodeInside().equals(ListNode.EMPTYLIST)) {
+			Node node = runExpr(operand);	//Car의 대상이 되는 부분을 수행하고
+			if( node instanceof ListNode )	//결과가 ListNode라면
+				node = ((ListNode) stripList((ListNode) node)).car(); // 핵심부분을 가져오게된다.
+			if (node instanceof QuoteNode) { // car의 대상은 Quote노드여야한다.
+				if (((QuoteNode) node).nodeInside().equals(ListNode.EMPTYLIST)) { // 비어있는 quote에 대해서는 에러를 리턴한다.
 					errorLog("Invalid Systax");
 					return null;
 				}
-				if (((QuoteNode) node).nodeInside() instanceof ListNode) {
+				if (((QuoteNode) node).nodeInside() instanceof ListNode) {	//비어있지않다면
 					Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car(); // Quote노드의 첫 노드가
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에 감싸서 나옴
 				}
@@ -121,7 +122,7 @@ public class CuteInterpreter {
 			return null;
 
 		case CDR:
-			Node cdrNode = runExpr(operand);
+			Node cdrNode = runExpr(operand);	//car와 유사하게 작동한다.
 			if( cdrNode instanceof ListNode ){
 				cdrNode = ((ListNode) stripList((ListNode) cdrNode)).car();
 			}
@@ -132,7 +133,7 @@ public class CuteInterpreter {
 				}
 				
 				if (((QuoteNode) cdrNode).nodeInside() instanceof ListNode) {
-					Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr(); // 이부분만 다름
+					Node targetNode = ((ListNode) ((QuoteNode) cdrNode).nodeInside()).cdr();
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode);
 				}
 			}
@@ -255,10 +256,9 @@ public class CuteInterpreter {
 								: runFunction(operator, operand.cdr())); // 아니면 뒤의 객체에 대해 재귀호출
 			}
 			break;
-		case DEFINE:
-			Node ret = operand.cdr().car();
-			insertTable(operand.car(), ret);
-			
+		case DEFINE:		//define을 만나게 되면 중간 인자를 key로
+			Node ret = operand.cdr().car(); //이후에 내용을
+			insertTable(operand.car(), ret); //매칭시켜 테이블에 저장한다.
 			break;
 			
 		default:
