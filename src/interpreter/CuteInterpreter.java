@@ -33,10 +33,15 @@ public class CuteInterpreter {
 	public Node runExpr(Node rootExpr) {
 		if (rootExpr == null)
 			return null;
-		if (rootExpr instanceof IdNode) // ID노드일 경우 HashMap으로 작성된 테이블에서 ID노드의 String값으로 탐색을하고 있을땐 그에 맞는 노드 없다면 Id노드반환
-			return VariableMap.containsKey(((IdNode) rootExpr).toString())
-					? VariableMap.get(((IdNode) rootExpr).toString())
-					: rootExpr;
+		if (rootExpr instanceof IdNode){ // ID노드일 경우 HashMap으로 작성된 테이블에서 ID노드의 String값으로 탐색을하고 있을땐 그에 맞는 노드 없다면 Id노드반환
+			if(VariableMap.containsKey(((IdNode) rootExpr).toString())){
+				if( VariableMap.get(((IdNode) rootExpr).toString()) instanceof ListNode )
+					return runList( (ListNode) VariableMap.get(((IdNode) rootExpr).toString()) );
+				return VariableMap.get(((IdNode) rootExpr).toString());
+			}
+			else				
+				return rootExpr;
+		}
 		else if (rootExpr instanceof IntNode)
 			return rootExpr;
 		else if (rootExpr instanceof BooleanNode)
@@ -50,38 +55,37 @@ public class CuteInterpreter {
 
 	private Node runList(ListNode list) {
 		if (list.car() instanceof IdNode) {
-			return runExpr(ListNode.cons(runExpr(list.car()), list.cdr()));
+			return runList(ListNode.cons( runExpr(list.car()) , list.cdr()));
 		}
 		if (list.equals(ListNode.EMPTYLIST)) {
 			return list;
 		}
 		if (list.car() instanceof FunctionNode) {
+			if( ((FunctionNode)list.car()).funcType == FunctionType.LAMBDA ){
+				return list;
+			}
 			return runFunction((FunctionNode) list.car(), (ListNode) stripList(list.cdr()));
 		}
 		if (list.car() instanceof BinaryOpNode) {
 			return runBinary(list);
 		}
-		
 		if (list.car() instanceof ListNode) {
 			if (((ListNode)list.car()).car() instanceof FunctionNode) {
 				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
 				if(op.funcType == FunctionType.LAMBDA) {
 					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
-					ListNode actual = list.cdr();
+					Node actual = runExpr(list.cdr().car());
 					ListNode operation = ((ListNode)list.car()).cdr().cdr();
 					HashMap<String, Node> localExtract = new HashMap<String, Node>();
 					
-					if (actual.equals(ListNode.EMPTYLIST)) return list;
+					if (actual.equals(ListNode.EMPTYLIST)) return list;	//인자가 없으면 걍 자기자신 리턴
 					
-					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())	//
 						if(VariableMap.containsKey(((IdNode)i.car()).idString))
 							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
 					
-					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) {
-						if (!(actual.car() instanceof IdNode))
-							insertTable((IdNode)i.car(), actual.car());
-						actual = actual.cdr();
-					}
+					if(!formal.equals(ListNode.EMPTYLIST))
+							insertTable( formal.car(), actual);
 					
 					Node tmp = null;
 					while(!operation.equals(ListNode.EMPTYLIST)) {
@@ -97,21 +101,20 @@ public class CuteInterpreter {
 				
 			}
 		}
-		
-		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
+		return list;
 	}
 
 	private Node runFunction(FunctionNode operator, ListNode operand) {
 		switch (operator.funcType) {
 		case CAR:
-			Node node = operand.car(); // ListNode의 첫번째 원소를 받아
-			
+			Node node = runExpr(operand);
+			if( node instanceof ListNode )
+				node = ((ListNode) stripList((ListNode) node)).car();
 			if (node instanceof QuoteNode) { // Quote노드일경우
 				if (((QuoteNode) node).nodeInside().equals(ListNode.EMPTYLIST)) {
 					errorLog("Invalid Systax");
 					return null;
 				}
-				
 				if (((QuoteNode) node).nodeInside() instanceof ListNode) {
 					Node targetNode = ((ListNode) ((QuoteNode) node).nodeInside()).car(); // Quote노드의 첫 노드가
 					return targetNode instanceof IntNode ? targetNode : new QuoteNode(targetNode); // Int노드가 아니라면 전부 '에 감싸서 나옴
@@ -122,8 +125,11 @@ public class CuteInterpreter {
 			return null;
 
 		case CDR:
-			Node cdrNode = operand.car(); // CAR와 마찬가지로 동작
-
+			Node cdrNode = runExpr(operand);
+			HashMap<String, Node> aa = VariableMap;
+			if( cdrNode instanceof ListNode ){
+				cdrNode = ((ListNode) stripList((ListNode) cdrNode)).car();
+			}
 			if (cdrNode instanceof QuoteNode) {
 				if (((QuoteNode) cdrNode).nodeInside().equals(ListNode.EMPTYLIST)) {
 					errorLog("Invalid Systax");
@@ -256,18 +262,6 @@ public class CuteInterpreter {
 			break;
 		case DEFINE:
 			Node ret = operand.cdr().car();
-			
-			if (operand.cdr().car() instanceof ListNode) {
-				ListNode tmp = (ListNode) operand.cdr().car();
-				
-				if (tmp.car() instanceof FunctionNode)
-					if (!(((FunctionNode)tmp.car()).funcType == FunctionType.LAMBDA))
-						ret = runExpr(operand.cdr().car());
-				
-				if(tmp.car() instanceof BinaryOpNode)
-					ret = runExpr(operand.cdr().car());
-			}
-			
 			insertTable(operand.car(), ret);
 			
 			break;
