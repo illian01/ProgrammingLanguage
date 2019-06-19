@@ -80,10 +80,6 @@ public class CuteInterpreter {
 					
 					if (actual.equals(ListNode.EMPTYLIST)) return list;	//인자가 없으면 걍 자기자신 리턴
 					
-					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())	//
-						if(VariableMap.containsKey(((IdNode)i.car()).idString))
-							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
-					
 					if(!formal.equals(ListNode.EMPTYLIST))
 							insertTable( formal.car(), actual);
 					
@@ -126,7 +122,6 @@ public class CuteInterpreter {
 
 		case CDR:
 			Node cdrNode = runExpr(operand);
-			HashMap<String, Node> aa = VariableMap;
 			if( cdrNode instanceof ListNode ){
 				cdrNode = ((ListNode) stripList((ListNode) cdrNode)).car();
 			}
