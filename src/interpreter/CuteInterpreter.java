@@ -33,10 +33,15 @@ public class CuteInterpreter {
 	public Node runExpr(Node rootExpr) {
 		if (rootExpr == null)
 			return null;
-		if (rootExpr instanceof IdNode) // ID노드일 경우 HashMap으로 작성된 테이블에서 ID노드의 String값으로 탐색을하고 있을땐 그에 맞는 노드 없다면 Id노드반환
-			return VariableMap.containsKey(((IdNode) rootExpr).toString())
-					? VariableMap.get(((IdNode) rootExpr).toString())
-					: rootExpr;
+		if (rootExpr instanceof IdNode){ // ID노드일 경우 HashMap으로 작성된 테이블에서 ID노드의 String값으로 탐색을하고 있을땐 그에 맞는 노드 없다면 Id노드반환
+			if(VariableMap.containsKey(((IdNode) rootExpr).toString())){
+				if( VariableMap.get(((IdNode) rootExpr).toString()) instanceof ListNode )
+					return runList( (ListNode) VariableMap.get(((IdNode) rootExpr).toString()) );
+				return VariableMap.get(((IdNode) rootExpr).toString());
+			}
+			else				
+				return rootExpr;
+		}
 		else if (rootExpr instanceof IntNode)
 			return rootExpr;
 		else if (rootExpr instanceof BooleanNode)
@@ -50,18 +55,23 @@ public class CuteInterpreter {
 
 	private Node runList(ListNode list) {
 		if (list.car() instanceof IdNode) {
-			return runExpr(ListNode.cons(runExpr(list.car()), list.cdr()));
+			Node tmp  = ListNode.cons(runExpr(list.car()), list.cdr());
+			return runExpr(ListNode.cons( runExpr(list.car()) , list.cdr()));
 		}
 		if (list.equals(ListNode.EMPTYLIST)) {
 			return list;
 		}
 		if (list.car() instanceof FunctionNode) {
+			if( ((FunctionNode)list.car()).funcType == FunctionType.LAMBDA ){
+				System.out.println("hi");
+				return list;
+			}
+			System.out.println( ((FunctionNode)list.car()).funcType == FunctionType.LAMBDA);
 			return runFunction((FunctionNode) list.car(), (ListNode) stripList(list.cdr()));
 		}
 		if (list.car() instanceof BinaryOpNode) {
 			return runBinary(list);
 		}
-		
 		if (list.car() instanceof ListNode) {
 			if (((ListNode)list.car()).car() instanceof FunctionNode) {
 				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
@@ -97,8 +107,7 @@ public class CuteInterpreter {
 				
 			}
 		}
-		
-		return ListNode.cons(runExpr(list.car()), (ListNode) runExpr(list.cdr()));
+		return list;
 	}
 
 	private Node runFunction(FunctionNode operator, ListNode operand) {
@@ -256,18 +265,6 @@ public class CuteInterpreter {
 			break;
 		case DEFINE:
 			Node ret = operand.cdr().car();
-			
-			if (operand.cdr().car() instanceof ListNode) {
-				ListNode tmp = (ListNode) operand.cdr().car();
-				
-				if (tmp.car() instanceof FunctionNode)
-					if (!(((FunctionNode)tmp.car()).funcType == FunctionType.LAMBDA))
-						ret = runExpr(operand.cdr().car());
-				
-				if(tmp.car() instanceof BinaryOpNode)
-					ret = runExpr(operand.cdr().car());
-			}
-			
 			insertTable(operand.car(), ret);
 			
 			break;
