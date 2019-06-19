@@ -74,14 +74,21 @@ public class CuteInterpreter {
 				FunctionNode op = (FunctionNode) ((ListNode)list.car()).car();
 				if(op.funcType == FunctionType.LAMBDA) {
 					ListNode formal = (ListNode) ((ListNode)list.car()).cdr().car();
-					Node actual = runExpr(list.cdr().car());
+					ListNode actual = list.cdr();
 					ListNode operation = ((ListNode)list.car()).cdr().cdr();
 					HashMap<String, Node> localExtract = new HashMap<String, Node>();
 					
 					if (actual.equals(ListNode.EMPTYLIST)) return list;	//인자가 없으면 걍 자기자신 리턴
 					
-					if(!formal.equals(ListNode.EMPTYLIST))
-							insertTable( formal.car(), actual);
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())	//
+						if(VariableMap.containsKey(((IdNode)i.car()).idString))
+							localExtract.put(((IdNode)i.car()).idString, VariableMap.get(((IdNode)i.car()).idString));
+					
+					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr()) {
+						Node temp = runExpr(actual.car());
+						insertTable((IdNode)i.car(), runExpr(actual.car()));
+						actual = actual.cdr();
+					}
 					
 					Node tmp = null;
 					while(!operation.equals(ListNode.EMPTYLIST)) {
@@ -89,8 +96,6 @@ public class CuteInterpreter {
 						operation = operation.cdr();
 					}
 					
-					for (ListNode i = formal; !i.equals(ListNode.EMPTYLIST); i = i.cdr())
-						insertTable(i.car(), localExtract.get(((IdNode)i.car()).idString));
 					
 					return tmp;
 				}
@@ -122,6 +127,7 @@ public class CuteInterpreter {
 
 		case CDR:
 			Node cdrNode = runExpr(operand);
+			HashMap<String, Node> aa = VariableMap;
 			if( cdrNode instanceof ListNode ){
 				cdrNode = ((ListNode) stripList((ListNode) cdrNode)).car();
 			}
